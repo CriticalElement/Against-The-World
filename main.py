@@ -45,7 +45,9 @@ while running:
 
     if player.x < -7550:
         player.x = -7550
-        
+    if player.x > 7550:
+        player.x = 7550
+
     # background
     screen.fill((135, 206, 235))
 
