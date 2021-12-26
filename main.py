@@ -22,6 +22,15 @@ player = Player()
 all_sprites.add(player)
 all_sprites.add(player.left_arm)
 all_sprites.add(player.right_arm)
+all_sprites.add(player.left_leg)
+all_sprites.add(player.right_leg)
+
+foot_flipped = player.left_leg.surface.copy()
+foot_flipped = pygame.transform.flip(foot_flipped, True, False)
+player.left_leg.surface = foot_flipped
+player.right_leg.surface = foot_flipped
+leg_direction = 'Right'
+head_direction = 'Right'
 
 # game loop
 clock = pygame.time.Clock()
@@ -40,15 +49,44 @@ while running:
         player.x_vel = player.x_vel - 5
         if player.x_vel < -10:
             player.x_vel = -10
+
     elif key[K_d]:
         player.x_vel = player.x_vel + 5
         if player.x_vel > 10:
             player.x_vel = 10
 
+    if 0 < player.x_vel < 1:
+        player.x_vel = 0
+    if -1 < player.x_vel < 0:
+        player.x_vel = 0
     if player.x < -7550:
         player.x = -7550
     if player.x > 7400:
         player.x = 7400
+
+    # sprite flipping
+    if player.x_vel < 0 and head_direction != 'Left':
+        # moving to the left
+        head_flipped = player.surface.copy()
+        head_flipped = pygame.transform.flip(head_flipped, True, False)
+        player.surface = head_flipped
+        foot_flipped = player.left_leg.surface.copy()
+        foot_flipped = pygame.transform.flip(foot_flipped, True, False)
+        player.left_leg.surface = foot_flipped
+        player.right_leg.surface = foot_flipped
+        leg_direction = 'Left'
+        head_direction = 'Left'
+    if player.x_vel > 0 and leg_direction != 'Right':
+        # moving to the right
+        foot_flipped = player.left_leg.surface.copy()
+        foot_flipped = pygame.transform.flip(foot_flipped, True, False)
+        player.left_leg.surface = foot_flipped
+        player.right_leg.surface = foot_flipped
+        head_flipped = player.surface.copy()
+        head_flipped = pygame.transform.flip(head_flipped, True, False)
+        player.surface = head_flipped
+        head_direction = 'Right'
+        leg_direction = 'Right'
 
     # background
     screen.fill((135, 206, 235))
