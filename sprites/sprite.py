@@ -10,3 +10,4 @@ class Sprite(pygame.sprite.Sprite):
         super(Sprite, self).__init__(*args)
         self.surface = None
         self.rect = None
+        self.is_player = False

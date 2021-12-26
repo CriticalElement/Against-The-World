@@ -20,6 +20,8 @@ for x in range(-7500, 7500, 750):
     all_sprites.add(ground_coords[x])
 player = Player()
 all_sprites.add(player)
+all_sprites.add(player.left_arm)
+all_sprites.add(player.right_arm)
 
 # game loop
 clock = pygame.time.Clock()
@@ -54,7 +56,7 @@ while running:
     sprite: Sprite
     for sprite in all_sprites:
         x_off = 100
-        if sprite != player:
+        if not sprite.is_player:
             x_off = x_off - player.x
         screen.blit(sprite.surface, sprite.rect.move(x_off, 0))
 

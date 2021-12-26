@@ -9,15 +9,20 @@ class Player(Sprite):
         super(Player, self).__init__(*args)
         self.x_vel = 0
         self.y_vel = 0
-        self.x = 100
-        self.y = 200
+        self.x = 0
+        self.y = 350
         self._hasjump = False
+        self.is_player = True
         self.surface = pygame.Surface((50, 100))
         self.surface.fill((255, 255, 255))
-        self.rect = self.surface.get_rect(topleft=(50, 200))
+        self.rect = self.surface.get_rect(topleft=(50, 350))
+        self.left_arm = LeftArm()
+        self.right_arm = RightArm()
 
     def update_coords(self):
         self.rect = self.surface.get_rect(topleft=(50, self.y))
+        self.left_arm.rect = self.left_arm.surface.get_rect(topleft=(40, self.y + 30))
+        self.right_arm.rect = self.right_arm.surface.get_rect(topleft=(95, self.y + 30))
 
     def update(self, *args, **kwargs):
         self.x_vel = self.x_vel * cof
@@ -35,3 +40,21 @@ class Player(Sprite):
             self.y_vel = self.y_vel - 15
             self._hasjump = False
             self.update_coords()
+
+
+class LeftArm(Sprite):
+    def __init__(self, *args):
+        super(LeftArm, self).__init__(*args)
+        self.surface = pygame.image.load('images/leftarm.png').convert()
+        self.surface.set_colorkey((99, 99, 99))
+        self.rect = self.surface.get_rect(topleft=(40, 380))
+        self.is_player = True
+
+
+class RightArm(Sprite):
+    def __init__(self, *args):
+        super(RightArm, self).__init__(*args)
+        self.surface = pygame.Surface((15, 24))
+        self.surface.fill((255, 0, 0))
+        self.rect = self.surface.get_rect(topleft=(70, 380))
+        self.is_player = True
