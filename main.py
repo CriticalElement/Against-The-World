@@ -42,6 +42,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
+    # handle movement
     key = pygame.key.get_pressed()
     if key[K_w]:
         player.jump()
