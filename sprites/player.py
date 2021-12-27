@@ -21,6 +21,8 @@ class Player(Sprite):
         self.right_arm = RightArm()
         self.left_leg = LeftLeg()
         self.right_leg = RightLeg()
+        self.sword = Sword()
+        self.sword_direction = 'Right'
 
     def update_coords(self):
         self.rect = self.surface.get_rect(topleft=(50, self.y))
@@ -28,6 +30,7 @@ class Player(Sprite):
         self.right_arm.rect = self.right_arm.surface.get_rect(topleft=(95, self.y + 45))
         self.left_leg.rect = self.left_leg.surface.get_rect(topleft=(55, self.y + 72))
         self.right_leg.rect = self.right_leg.surface.get_rect(topleft=(75, self.y + 72))
+        self.sword.rect = self.sword.surface.get_rect(topleft=(105, self.y + 5))
 
     def update(self, *args, **kwargs):
         self.x_vel = self.x_vel * cof
@@ -78,4 +81,12 @@ class RightLeg(Sprite):
         super(RightLeg, self).__init__(*args)
         self.surface = pygame.image.load('images/leg0.png')
         self.rect = self.surface.get_rect(topleft=(75, 400))
+        self.is_player = True
+
+
+class Sword(Sprite):
+    def __init__(self, *args):
+        super(Sword, self).__init__(*args)
+        self.surface = pygame.image.load('images/sword.png')
+        self.rect = self.surface.get_rect(topleft=(85, 380))
         self.is_player = True

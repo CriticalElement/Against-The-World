@@ -26,6 +26,7 @@ all_sprites.add(player.right_arm)
 all_sprites.add(player.left_leg)
 all_sprites.add(player.right_leg)
 all_sprites.add(player)
+all_sprites.add(player.sword)
 
 foot_flipped = player.left_leg.surface.copy()
 foot_flipped = pygame.transform.flip(foot_flipped, True, False)
@@ -152,6 +153,7 @@ while running:
     # background
     screen.fill((135, 206, 235))
 
+    # render all sprites
     sprite: Sprite
     for sprite in all_sprites:
         x_off = 100
