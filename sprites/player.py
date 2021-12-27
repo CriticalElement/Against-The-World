@@ -11,6 +11,7 @@ class Player(Sprite):
         self.y_vel = 0
         self.x = 0
         self.y = 350
+        self.ground_height = 355
         self._hasjump = False
         self.is_player = True
         self.surface = pygame.image.load('images/headandtorso.png').convert()
@@ -25,16 +26,16 @@ class Player(Sprite):
         self.rect = self.surface.get_rect(topleft=(50, self.y))
         self.left_arm.rect = self.left_arm.surface.get_rect(topleft=(50, self.y + 45))
         self.right_arm.rect = self.right_arm.surface.get_rect(topleft=(95, self.y + 45))
-        self.left_leg.rect = self.left_leg.surface.get_rect(topleft=(55, self.y + 80))
-        self.right_leg.rect = self.right_leg.surface.get_rect(topleft=(75, self.y + 80))
+        self.left_leg.rect = self.left_leg.surface.get_rect(topleft=(55, self.y + 72))
+        self.right_leg.rect = self.right_leg.surface.get_rect(topleft=(75, self.y + 72))
 
     def update(self, *args, **kwargs):
         self.x_vel = self.x_vel * cof
         self.y_vel = self.y_vel + gravity ** 2
         self.x = self.x + self.x_vel
         self.y = self.y + self.y_vel
-        if self.y > 355:
-            self.y = 355
+        if self.y > self.ground_height:
+            self.y = self.ground_height
             self.y_vel = 0
             self._hasjump = True
         self.update_coords()
@@ -67,8 +68,7 @@ class RightArm(Sprite):
 class LeftLeg(Sprite):
     def __init__(self, *args):
         super(LeftLeg, self).__init__(*args)
-        self.surface = pygame.image.load('images/leg.png').convert()
-        self.surface.set_colorkey((99, 99, 99))
+        self.surface = pygame.image.load('images/leg0.png')
         self.rect = self.surface.get_rect(topleft=(55, 400))
         self.is_player = True
 
@@ -76,7 +76,6 @@ class LeftLeg(Sprite):
 class RightLeg(Sprite):
     def __init__(self, *args):
         super(RightLeg, self).__init__(*args)
-        self.surface = pygame.image.load('images/leg.png').convert()
-        self.surface.set_colorkey((99, 99, 99))
+        self.surface = pygame.image.load('images/leg0.png')
         self.rect = self.surface.get_rect(topleft=(75, 400))
         self.is_player = True
