@@ -30,7 +30,10 @@ class Player(Sprite):
         self.right_arm.rect = self.right_arm.surface.get_rect(topleft=(95, self.y + 45))
         self.left_leg.rect = self.left_leg.surface.get_rect(topleft=(55, self.y + 72))
         self.right_leg.rect = self.right_leg.surface.get_rect(topleft=(75, self.y + 72))
-        self.sword.rect = self.sword.surface.get_rect(topleft=(105, self.y + 5))
+        if self.sword_direction == 'Right': 
+            self.sword.rect = self.sword.surface.get_rect(topleft=(105, self.y + 5))
+        else:
+            self.sword.rect = self.sword.surface.get_rect(topleft=(40, self.y + 5))
 
     def update(self, *args, **kwargs):
         self.x_vel = self.x_vel * cof

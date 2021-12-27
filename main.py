@@ -27,7 +27,6 @@ all_sprites.add(player.left_leg)
 all_sprites.add(player.right_leg)
 all_sprites.add(player)
 all_sprites.add(player.sword)
-
 foot_flipped = player.left_leg.surface.copy()
 foot_flipped = pygame.transform.flip(foot_flipped, True, False)
 player.left_leg.surface = foot_flipped
@@ -84,7 +83,11 @@ while running:
             player.left_leg.surface = foot_flipped
             player.right_leg.surface = foot_flipped
             leg_direction = 'Left'
-            head_direction = 'Left'
+            head_direction = 'Left' 
+            sword_flipped = player.sword.surface.copy()
+            sword_flipped = pygame.transform.flip(sword_flipped, True, False)
+            player.sword.surface = sword_flipped
+            player.sword_direction = 'Left'
         else:
             # walk cycle
             if current_index % 3:
