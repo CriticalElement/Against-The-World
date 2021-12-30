@@ -97,6 +97,9 @@ while running:
                 player.x_vel = player.x_vel + 5
             if player.x_vel > 10:
                 player.x_vel = 10
+        else:
+            if pygame.sprite.spritecollideany(player, enemies):
+                player.x_vel = 0
 
         if 0 < player.x_vel < 1:
             player.x_vel = 0
