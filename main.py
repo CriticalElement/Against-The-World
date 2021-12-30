@@ -8,6 +8,7 @@ from sprites.groundtiles import *
 from sprites.player import Player
 from sprites.sprite import Sprite
 from sprites.menu import *
+from sprites.enemy import StaticEnemy
 
 
 # initialize the window
@@ -45,6 +46,12 @@ torso_bobbing = False
 current_index = 0
 other_leg_index = 6
 time_since_bob = time.time()
+
+# TODO: randomly generate this and load this from a database
+enemy_locations = [600]
+for location in enemy_locations:
+    enemy = StaticEnemy((location, 250))
+    all_sprites.add(enemy)
 
 # game loop
 clock = pygame.time.Clock()
