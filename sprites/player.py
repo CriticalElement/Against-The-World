@@ -33,7 +33,7 @@ class Player(Sprite):
         if self.sword_direction == 'Right': 
             self.sword.rect = self.sword.surface.get_rect(topleft=(105, self.y + 5))
         else:
-            self.sword.rect = self.sword.surface.get_rect(topleft=(40, self.y + 5))
+            self.sword.rect = self.sword.surface.get_rect(topleft=(-5, self.y + 5))
 
     def update(self, *args, **kwargs):
         self.x_vel = self.x_vel * cof
