@@ -11,3 +11,4 @@ class StaticEnemy(Sprite):
         super(StaticEnemy, self).__init__(*args)
         self.surface = pygame.image.load('images/staticenemy1.png')
         self.rect = self.surface.get_rect(topleft=coords)
+        self.rectoff = self.rect

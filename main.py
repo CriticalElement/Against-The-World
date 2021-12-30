@@ -21,6 +21,7 @@ play_button = Button(lambda: game_state.change_state(game_state.game), (400, 300
 all_sprites = pygame.sprite.Group()
 ground_tiles = pygame.sprite.Group()
 menu_elements = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
 menu_elements.add(play_button)
 menu_elements.add(menu_image)
 ground_coords = {}
@@ -42,6 +43,8 @@ player.right_leg.surface = foot_flipped
 leg_direction = 'Right'
 head_direction = 'Right'
 torso_bobbing = False
+player.can_move_left = False
+player.can_move_right = False
 
 current_index = 0
 other_leg_index = 6
@@ -50,7 +53,8 @@ time_since_bob = time.time()
 # TODO: randomly generate this and load this from a database
 enemy_locations = [600]
 for location in enemy_locations:
-    enemy = StaticEnemy((location, 250))
+    enemy = StaticEnemy((location, 294))
+    enemies.add(enemy)
     all_sprites.add(enemy)
 
 # game loop
@@ -78,11 +82,19 @@ while running:
         if key[K_w]:
             player.jump()
         if key[K_a]:
-            player.x_vel = player.x_vel - 5
+            if pygame.sprite.spritecollideany(player, enemies) and not player.can_move_left:
+                player.x_vel = 0
+                player.can_move_right = True
+            else:
+                player.x_vel = player.x_vel - 5
             if player.x_vel < -10:
                 player.x_vel = -10
         elif key[K_d]:
-            player.x_vel = player.x_vel + 5
+            if enemy := pygame.sprite.spritecollideany(player, enemies) and not player.can_move_right:
+                player.x_vel = 0
+                player.can_move_left = True
+            else:
+                player.x_vel = player.x_vel + 5
             if player.x_vel > 10:
                 player.x_vel = 10
 
@@ -187,10 +199,11 @@ while running:
         # render all sprites
         sprite: Sprite
         for sprite in all_sprites:
-            x_off = 100
             if not sprite.is_player:
-                x_off = x_off - player.x
-            screen.blit(sprite.surface, sprite.rect.move(x_off, 0))
+                sprite.update()
+                sprite.rectoff = sprite.rect
+                sprite.rect = sprite.surface.get_rect(topleft=(sprite.rect.x - player.x, sprite.rect.y))
+            screen.blit(sprite.surface, sprite.rect)
 
         player.update()
 

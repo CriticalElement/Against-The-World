@@ -10,6 +10,7 @@ class GroundTile(Sprite):
         super(GroundTile, self).__init__(*args)
         self.surface = img
         self.rect = self.surface.get_rect(topleft=coords)
+        self.rectoff = self.rect
 
 
 class Ground(GroundTile):

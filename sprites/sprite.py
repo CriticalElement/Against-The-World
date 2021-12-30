@@ -10,4 +10,8 @@ class Sprite(pygame.sprite.Sprite):
         super(Sprite, self).__init__(*args)
         self.surface = None
         self.rect = None
+        self.rectoff = None
         self.is_player = False
+
+    def update(self):
+        self.rect = self.rectoff

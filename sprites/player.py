@@ -17,6 +17,7 @@ class Player(Sprite):
         self.surface = pygame.image.load('images/headandtorso.png').convert()
         self.surface.set_colorkey((99, 99, 99))
         self.rect = pygame.Rect(50, 350, 65, 100)
+        self.rectoff = self.rect
         self.left_arm = LeftArm()
         self.right_arm = RightArm()
         self.left_leg = LeftLeg()
@@ -45,6 +46,7 @@ class Player(Sprite):
             self.y_vel = 0
             self._hasjump = True
         self.update_coords()
+        print(self.rect)
 
     def jump(self):
         if self._hasjump:
@@ -59,6 +61,7 @@ class LeftArm(Sprite):
         self.surface = pygame.image.load('images/leftarm.png').convert()
         self.surface.set_colorkey((99, 99, 99))
         self.rect = self.surface.get_rect(topleft=(40, 380))
+        self.rectoff = self.rect
         self.is_player = True
 
 
@@ -68,6 +71,7 @@ class RightArm(Sprite):
         self.surface = pygame.image.load('images/rightarm.png').convert()
         self.surface.set_colorkey((99, 99, 99))
         self.rect = self.surface.get_rect(topleft=(70, 380))
+        self.rectoff = self.rect
         self.is_player = True
 
 
@@ -76,6 +80,7 @@ class LeftLeg(Sprite):
         super(LeftLeg, self).__init__(*args)
         self.surface = pygame.image.load('images/leg0.png')
         self.rect = self.surface.get_rect(topleft=(55, 400))
+        self.rectoff = self.rect
         self.is_player = True
 
 
@@ -84,6 +89,7 @@ class RightLeg(Sprite):
         super(RightLeg, self).__init__(*args)
         self.surface = pygame.image.load('images/leg0.png')
         self.rect = self.surface.get_rect(topleft=(75, 400))
+        self.rectoff = self.rect
         self.is_player = True
 
 
@@ -92,4 +98,5 @@ class Sword(Sprite):
         super(Sword, self).__init__(*args)
         self.surface = pygame.image.load('images/sword.png')
         self.rect = self.surface.get_rect(topleft=(85, 380))
+        self.rectoff = self.rect
         self.is_player = True
