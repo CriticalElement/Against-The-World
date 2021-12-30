@@ -11,9 +11,12 @@ font = pygame.font.Font(os.path.abspath('misc/C&C Red Alert [INET].ttf'), 50)
 
 
 class UIElement(pygame.sprite.Sprite):
-    def __init__(self, coords, text, *args):
+    def __init__(self, coords, text='', image='', *args):
         super(UIElement, self).__init__(*args)
-        self.surface = font.render(text, False, (255, 255, 255)).convert_alpha()
+        if text:
+            self.surface = font.render(text, False, (255, 255, 255)).convert_alpha()
+        elif image:
+            self.surface = pygame.image.load(image)
         self.rect = self.surface.get_rect(center=coords)
 
 

@@ -15,11 +15,13 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Against The World')
 
 game_state = GameState()
+menu_image = UIElement((400, 150), image='images/againsttheworld.png')
 play_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'PLAY')
 all_sprites = pygame.sprite.Group()
 ground_tiles = pygame.sprite.Group()
 menu_elements = pygame.sprite.Group()
 menu_elements.add(play_button)
+menu_elements.add(menu_image)
 ground_coords = {}
 for x in range(-7500, 7500, 750):
     ground_coords[x] = Ground((x, 450))
@@ -60,8 +62,7 @@ while running:
         element: UIElement
         for element in menu_elements:
             for event in events:
-                if event.type == pygame.MOUSEBUTTONDOWN and element.rect.collidepoint(event.pos):
-                    element.update(event)
+                element.update(event)
             screen.blit(element.surface, element.rect)
 
     if game_state.state == 'Game':
