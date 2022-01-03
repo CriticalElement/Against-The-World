@@ -8,8 +8,10 @@ class GameState:
     menu = 'Menu'
     game = 'Game'
 
-    def __init__(self):
+    def __init__(self, events):
         self.state = self.menu
+        self.events = events
 
     def change_state(self, new_state):
         self.state = new_state
+        self.events = []

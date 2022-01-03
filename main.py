@@ -3,6 +3,7 @@ import time
 import pygame
 from pygame.locals import K_w, K_a, K_d
 
+from helper import *
 from gamestate import GameState
 from sprites.groundtiles import *
 from sprites.player import Player
@@ -15,7 +16,8 @@ from sprites.enemy import StaticEnemy
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Against The World')
 
-game_state = GameState()
+events = []
+game_state = GameState(events)
 menu_image = UIElement((400, 150), image='images/againsttheworld.png')
 play_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'PLAY')
 all_sprites = pygame.sprite.Group()
@@ -49,6 +51,12 @@ player.can_move_right = False
 current_index = 0
 other_leg_index = 6
 time_since_bob = time.time()
+arm_rotations = [5, 10, 15, 20, 25, 30, 35, 40, 35, 40, 30, 20, 10, 0, -10, -20, -30, -40, -35, -30, -25, -20,
+                 -15, -10, -5]
+arm_rotation_index = 0
+is_arm_rotating = False
+should_arm_rotate = False
+arm_rotation_direction = 'Right'
 
 # TODO: randomly generate this and load this from a database
 enemy_locations = [600]
@@ -110,6 +118,82 @@ while running:
         if player.x > 7400:
             player.x = 7400
 
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if is_arm_rotating:
+                    should_arm_rotate = True
+                else:
+                    is_arm_rotating = True
+                    arm_rotation_direction = player.sword_direction
+
+        if should_arm_rotate and not is_arm_rotating:
+            is_arm_rotating = True
+            should_arm_rotate = False
+
+        if player.sword_direction == 'Right':
+            if arm_rotation_direction == 'Left':
+                is_arm_rotating = False
+                should_arm_rotate = False
+                arm_rotation_index = 0
+                arm_rotation_direction = 'Right'
+            if is_arm_rotating:
+                player.right_arm.rect, player.right_arm.surface = rotate_along_pivot(player.right_arm,
+                                                                                     player.right_arm.rectoff.topleft,
+                                                                                     (0, 0),
+                                                                                     arm_rotations[arm_rotation_index])
+                player.sword.rect, player.sword.surface = rotate_along_pivot(player.sword,
+                                                                             (player.sword.rectoff.x + -5,
+                                                                              player.sword.rectoff.y + 35),
+                                                                             (-5, 35),
+                                                                             arm_rotations[arm_rotation_index])
+                if arm_rotation_index == len(arm_rotations) - 1:
+                    arm_rotation_index = 0
+                    is_arm_rotating = False
+                else:
+                    arm_rotation_index = arm_rotation_index + 1
+            else:
+                player.right_arm.rect, player.right_arm.surface = player.right_arm.rectoff, \
+                                                                  player.right_arm.original_surface
+                player.sword.rect, player.sword.surface = player.sword.rectoff, player.sword.original_surface
+            player.left_arm.rect, player.left_arm.surface = \
+                player.left_arm.rectoff, player.left_arm.original_surface
+        else:
+            if arm_rotation_direction == 'Right':
+                is_arm_rotating = False
+                should_arm_rotate = False
+                arm_rotation_index = 0
+                arm_rotation_direction = 'Left'
+            if is_arm_rotating:
+
+                player.left_arm.rect, player.left_arm.surface = rotate_along_pivot(player.left_arm,
+                                                                                   (player.left_arm.rectoff.x +
+                                                                                    player.left_arm.rectoff.width,
+                                                                                    player.left_arm.rectoff.y),
+                                                                                   (player.left_arm.rectoff.width, 0),
+                                                                                   -arm_rotations[arm_rotation_index])
+                player.sword.rect, player.sword.surface = rotate_along_pivot(player.sword,
+                                                                             (player.sword.rectoff.x + 76,
+                                                                              player.sword.rectoff.y + 40),
+                                                                             (76, 40),
+                                                                             -arm_rotations[arm_rotation_index])
+                if arm_rotation_index == len(arm_rotations) - 1:
+                    arm_rotation_index = 0
+                    is_arm_rotating = False
+                else:
+                    arm_rotation_index = arm_rotation_index + 1
+            else:
+                player.left_arm.rect, player.left_arm.surface = player.left_arm.rectoff, \
+                                                                  player.left_arm.original_surface
+                player.sword.rect, player.sword.surface = player.sword.rectoff, player.sword.original_surface
+            player.right_arm.rect, player.right_arm.surface = \
+                player.right_arm.rectoff, player.right_arm.original_surface
+        if not is_arm_rotating:
+            player.right_arm.rect, player.right_arm.surface = player.right_arm.rectoff, \
+                                                              player.right_arm.original_surface
+            player.sword.rect, player.sword.surface = player.sword.rectoff, player.sword.original_surface
+            player.left_arm.rect, player.left_arm.surface = \
+                player.left_arm.rectoff, player.left_arm.original_surface
+
         # sprite flipping
         if player.x_vel < 0:
             if head_direction != 'Left':
@@ -123,9 +207,9 @@ while running:
                 player.right_leg.surface = foot_flipped
                 leg_direction = 'Left'
                 head_direction = 'Left'
-                sword_flipped = player.sword.surface.copy()
+                sword_flipped = player.sword.original_surface.copy()
                 sword_flipped = pygame.transform.flip(sword_flipped, True, False)
-                player.sword.surface = sword_flipped
+                player.sword.original_surface = sword_flipped
                 player.sword_direction = 'Left'
             else:
                 # walk cycle
@@ -160,9 +244,9 @@ while running:
                 player.surface = head_flipped
                 head_direction = 'Right'
                 leg_direction = 'Right'
-                sword_flipped = player.sword.surface.copy()
+                sword_flipped = player.sword.original_surface.copy()
                 sword_flipped = pygame.transform.flip(sword_flipped, True, False)
-                player.sword.surface = sword_flipped
+                player.sword.original_surface = sword_flipped
                 player.sword_direction = 'Right'
             else:
                 # walk cycle
@@ -203,7 +287,7 @@ while running:
         sprite: Sprite
         for sprite in all_sprites:
             if not sprite.is_player:
-                sprite.update()
+                sprite.update(screen=screen)
                 sprite.rectoff = sprite.rect
                 sprite.rect = sprite.surface.get_rect(topleft=(sprite.rect.x - player.x, sprite.rect.y))
             screen.blit(sprite.surface, sprite.rect)

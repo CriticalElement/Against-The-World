@@ -13,5 +13,5 @@ class Sprite(pygame.sprite.Sprite):
         self.rectoff = None
         self.is_player = False
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.rect = self.rectoff
