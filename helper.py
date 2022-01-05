@@ -1,32 +1,13 @@
 import pygame
 
 
-__all__ = ('gravity', 'cof', 'rotate_image_along_topleft_pivot', 'rotate_image_along_bottomleft_pivot',
-           'rotate_along_pivot')
+__all__ = ('gravity', 'cof', 'event_mappings', 'rotate_along_pivot')
 
 
 gravity = -1  # default constant for gravity
 cof = 0.9  # default constant for the coefficient of friction
 
-
-def rotate_image_along_topleft_pivot(sprite, original_surface, degree):
-    rotated = pygame.transform.rotate(original_surface, degree)
-    new_rect = rotated.get_rect(topleft=sprite.rect.topleft)
-    size_off_x = 0 - (new_rect.width - sprite.rect.width) / 2
-    size_off_y = 0 - (new_rect.height - sprite.rect.height) / 2
-    new_rect = rotated.get_rect(topleft=(sprite.rect.x + size_off_x,
-                                         sprite.rect.y + size_off_y))
-    return new_rect, rotated
-
-
-def rotate_image_along_bottomleft_pivot(sprite, original_surface, degree):
-    rotated = pygame.transform.rotate(original_surface, degree)
-    new_rect = rotated.get_rect(topleft=sprite.rect.topleft)
-    size_off_x = 0 - (new_rect.width - sprite.rect.width) / 2
-    size_off_y = 0 - (new_rect.height - sprite.rect.height) / 2
-    new_rect = rotated.get_rect(topleft=(sprite.rect.x + size_off_x,
-                                         sprite.rect.y + size_off_y))
-    return new_rect, rotated
+event_mappings = {}  # handle custom events
 
 
 def rotate_along_pivot(sprite, pos, pivot, angle):

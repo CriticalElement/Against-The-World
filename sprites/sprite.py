@@ -9,6 +9,7 @@ class Sprite(pygame.sprite.Sprite):
     def __init__(self, *args):
         super(Sprite, self).__init__(*args)
         self.surface = None
+        self.original_surface = None
         self.rect = None
         self.rectoff = None
         self.is_player = False

@@ -1,4 +1,5 @@
 import time
+import typing
 
 import pygame
 from pygame.locals import K_w, K_a, K_d
@@ -9,7 +10,7 @@ from sprites.groundtiles import *
 from sprites.player import Player
 from sprites.sprite import Sprite
 from sprites.menu import *
-from sprites.enemy import StaticEnemy
+from sprites.enemy import *
 
 
 # initialize the window
@@ -20,18 +21,22 @@ events = []
 game_state = GameState(events)
 menu_image = UIElement((400, 150), image='images/againsttheworld.png')
 play_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'PLAY')
-all_sprites = pygame.sprite.Group()
-ground_tiles = pygame.sprite.Group()
 menu_elements = pygame.sprite.Group()
-enemies = pygame.sprite.Group()
 menu_elements.add(play_button)
 menu_elements.add(menu_image)
+
+all_sprites = pygame.sprite.Group()
+ground_tiles = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
+
 ground_coords = {}
 for x in range(-7500, 7500, 750):
     ground_coords[x] = Ground((x, 450))
     ground_tiles.add(ground_coords[x])
     all_sprites.add(ground_coords[x])
 player = Player()
+pygame.player = player
+pygame.all_sprites = all_sprites
 all_sprites.add(player.left_arm)
 all_sprites.add(player.right_arm)
 all_sprites.add(player.left_leg)
@@ -45,18 +50,21 @@ player.right_leg.surface = foot_flipped
 leg_direction = 'Right'
 head_direction = 'Right'
 torso_bobbing = False
-player.can_move_left = False
-player.can_move_right = False
+player.can_move_left = True
+player.can_move_right = True
 
 current_index = 0
 other_leg_index = 6
 time_since_bob = time.time()
-arm_rotations = [5, 10, 15, 20, 25, 30, 35, 40, 35, 40, 30, 20, 10, 0, -10, -20, -30, -40, -35, -30, -25, -20,
-                 -15, -10, -5]
+arm_rotations = [5, 10, 15, 20, 25, 30, 35, 40, 30, 20, 10, 0, -10, -20, -30, -40, -35, -30, -25, -20, -15, -10, -5]
 arm_rotation_index = 0
-is_arm_rotating = False
-should_arm_rotate = False
+is_arm_rotating = True
+should_arm_rotate = True
 arm_rotation_direction = 'Right'
+sword_swinging = False
+sword_damage = 10
+hit_enemy = None
+hit_time = time.time()
 
 # TODO: randomly generate this and load this from a database
 enemy_locations = [600]
@@ -85,29 +93,35 @@ while running:
             screen.blit(element.surface, element.rect)
 
     if game_state.state == 'Game':
+        # handle enemy collision
+        if enemy := pygame.sprite.spritecollideany(player, enemies):
+            if player.rect.x < enemy.rect.x:
+                # player is to the left of the enemy
+                player.x_vel = 0
+                player.can_move_right = False
+            else:
+                # player is to the right of the enemy
+                player.x_vel = 0
+                player.can_move_left = False
+
         # handle movement
         key = pygame.key.get_pressed()
         if key[K_w]:
             player.jump()
-        if key[K_a]:
-            if pygame.sprite.spritecollideany(player, enemies) and not player.can_move_left:
-                player.x_vel = 0
-                player.can_move_right = True
-            else:
-                player.x_vel = player.x_vel - 5
+        if key[K_a] and player.can_move_left:
+            if not player.can_move_right:
+                player.x_vel -= 2
+            player.x_vel -= 2
+            player.can_move_right = True
             if player.x_vel < -10:
                 player.x_vel = -10
-        elif key[K_d]:
-            if enemy := pygame.sprite.spritecollideany(player, enemies) and not player.can_move_right:
-                player.x_vel = 0
-                player.can_move_left = True
-            else:
-                player.x_vel = player.x_vel + 5
+        elif key[K_d] and player.can_move_right:
+            if not player.can_move_left:
+                player.x_vel += 2
+            player.x_vel += 2
+            player.can_move_left = True
             if player.x_vel > 10:
                 player.x_vel = 10
-        else:
-            if pygame.sprite.spritecollideany(player, enemies):
-                player.x_vel = 0
 
         if 0 < player.x_vel < 1:
             player.x_vel = 0
@@ -125,6 +139,8 @@ while running:
                 else:
                     is_arm_rotating = True
                     arm_rotation_direction = player.sword_direction
+            if event.type in event_mappings:
+                event_mappings[event.type]()
 
         if should_arm_rotate and not is_arm_rotating:
             is_arm_rotating = True
@@ -146,11 +162,23 @@ while running:
                                                                               player.sword.rectoff.y + 35),
                                                                              (-5, 35),
                                                                              arm_rotations[arm_rotation_index])
+                if arm_rotation_index == 0:
+                    sword_swinging = True
                 if arm_rotation_index == len(arm_rotations) - 1:
                     arm_rotation_index = 0
                     is_arm_rotating = False
+                    sword_swinging = False
                 else:
                     arm_rotation_index = arm_rotation_index + 1
+                    if 7 < arm_rotation_index < 15:
+                        enemy_collision: typing.Union[Enemy, Sprite]
+                        if enemy_collision := pygame.sprite.spritecollideany(player.sword, enemies):
+                            if sword_swinging:
+                                enemy_collision.health -= sword_damage
+                                sword_swinging = False
+                                enemy_collision.surface.fill((200, 150, 150), special_flags=pygame.BLEND_RGB_ADD)
+                                hit_enemy = enemy_collision
+                                hit_time = time.time()
             else:
                 player.right_arm.rect, player.right_arm.surface = player.right_arm.rectoff, \
                                                                   player.right_arm.original_surface
@@ -176,11 +204,23 @@ while running:
                                                                               player.sword.rectoff.y + 40),
                                                                              (76, 40),
                                                                              -arm_rotations[arm_rotation_index])
+                if arm_rotation_index == 0:
+                    sword_swinging = True
                 if arm_rotation_index == len(arm_rotations) - 1:
                     arm_rotation_index = 0
                     is_arm_rotating = False
+                    sword_swinging = False
                 else:
                     arm_rotation_index = arm_rotation_index + 1
+                    if 7 < arm_rotation_index < 15:
+                        enemy_collision: typing.Union[Enemy, Sprite]
+                        if enemy_collision := pygame.sprite.spritecollideany(player.sword, enemies):
+                            if sword_swinging:
+                                enemy_collision.health -= sword_damage
+                                sword_swinging = False
+                                enemy_collision.surface.fill((200, 150, 150), special_flags=pygame.BLEND_RGB_ADD)
+                                hit_enemy = enemy_collision
+                                hit_time = time.time()
             else:
                 player.left_arm.rect, player.left_arm.surface = player.left_arm.rectoff, \
                                                                   player.left_arm.original_surface
@@ -193,6 +233,10 @@ while running:
             player.sword.rect, player.sword.surface = player.sword.rectoff, player.sword.original_surface
             player.left_arm.rect, player.left_arm.surface = \
                 player.left_arm.rectoff, player.left_arm.original_surface
+
+        if hit_enemy and time.time() - hit_time > 0.2:
+            hit_enemy.surface = hit_enemy.original_surface.copy()
+            hit_enemy = None
 
         # sprite flipping
         if player.x_vel < 0:
