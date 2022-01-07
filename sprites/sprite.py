@@ -13,6 +13,7 @@ class Sprite(pygame.sprite.Sprite):
         self.rect = None
         self.rectoff = None
         self.is_player = False
+        self.is_hud = False
 
     def update(self, *args, **kwargs):
         self.rect = self.rectoff

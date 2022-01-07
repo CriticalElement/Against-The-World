@@ -30,6 +30,10 @@ class Projectile(Sprite):
         rise = math.sin(self.angle) * self.speed * self.movements
         self.rect = self.original_rect.move(run, rise)
         self.movements = self.movements + 1
-        if self.movements == 200:
+        if self.movements == 150:
             self.kill()
-            pygame.all_sprites.remove(self)
+
+    def kill(self):
+        pygame.all_sprites.remove(self)
+        pygame.damaging_sprites.remove(self)
+        super(Projectile, self).kill()

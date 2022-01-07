@@ -16,8 +16,7 @@ class Player(Sprite):
         self.ground_height = 355
         self._hasjump = False
         self.is_player = True
-        self.surface = pygame.image.load('images/headandtorso.png').convert()
-        self.surface.set_colorkey((99, 99, 99))
+        self.surface = pygame.image.load('images/headandtorso.png')
         self.rect = pygame.Rect(50, 350, 65, 100)
         self.rectoff = self.rect
         self.left_arm = LeftArm()
@@ -59,8 +58,7 @@ class Player(Sprite):
 class LeftArm(Sprite):
     def __init__(self, *args):
         super(LeftArm, self).__init__(*args)
-        self.surface = pygame.image.load('images/leftarm.png').convert()
-        self.surface.set_colorkey((99, 99, 99))
+        self.surface = pygame.image.load('images/leftarm.png')
         self.original_surface = self.surface
         self.rect = self.surface.get_rect(topleft=(40, 380))
         self.rectoff = self.rect
@@ -70,8 +68,7 @@ class LeftArm(Sprite):
 class RightArm(Sprite):
     def __init__(self, *args):
         super(RightArm, self).__init__(*args)
-        self.surface = pygame.image.load('images/rightarm.png').convert()
-        self.surface.set_colorkey((99, 99, 99))
+        self.surface = pygame.image.load('images/rightarm.png')
         self.original_surface = self.surface
         self.rect = self.surface.get_rect(topleft=(70, 380))
         self.rectoff = self.rect

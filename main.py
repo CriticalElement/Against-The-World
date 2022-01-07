@@ -11,6 +11,7 @@ from sprites.player import Player
 from sprites.sprite import Sprite
 from sprites.menu import *
 from sprites.enemy import *
+from sprites.hud import *
 
 
 # initialize the window
@@ -28,6 +29,13 @@ menu_elements.add(menu_image)
 all_sprites = pygame.sprite.Group()
 ground_tiles = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
+damaging_sprites = pygame.sprite.Group()
+hud_sprites = pygame.sprite.Group()
+health_sprites = pygame.sprite.Group()
+for x in range(5):
+    heart = HealthHeart(True, (x * 35 + 10, 10))
+    hud_sprites.add(heart)
+    health_sprites.add(heart)
 
 ground_coords = {}
 for x in range(-7500, 7500, 750):
@@ -37,6 +45,7 @@ for x in range(-7500, 7500, 750):
 player = Player()
 pygame.player = player
 pygame.all_sprites = all_sprites
+pygame.damaging_sprites = damaging_sprites
 all_sprites.add(player.left_arm)
 all_sprites.add(player.right_arm)
 all_sprites.add(player.left_leg)
@@ -52,6 +61,10 @@ head_direction = 'Right'
 torso_bobbing = False
 player.can_move_left = True
 player.can_move_right = True
+player_health = 5
+last_hit_time = 0
+player_blink_time = 0
+player_blinking = False
 
 current_index = 0
 other_leg_index = 6
@@ -103,6 +116,35 @@ while running:
                 # player is to the right of the enemy
                 player.x_vel = 0
                 player.can_move_left = False
+        # handle damage collision
+        if (collision := pygame.sprite.spritecollideany(player, damaging_sprites)) and time.time() - last_hit_time > 2:
+            collision.kill()
+            print('player collided')
+            last_hit_time = time.time()
+            player_health -= 1
+            if player_health == 0:
+                # TODO: implement game over screen with menu and retry options
+                running = False
+
+        time_diff = time.time() - last_hit_time if last_hit_time != 0 else 0
+
+        def remove_flash():
+            player.surface = pygame.image.load('images/headandtorso.png')
+            if head_direction == 'Left':
+                player.surface = pygame.transform.flip(player.surface, True, False)
+
+        # blink the player every 0.1 seconds whenever they get hit to show an invincibility phase
+        if time_diff > 2:
+            remove_flash()
+            player_blinking = False
+        elif 0 < time_diff < 2 and time.time() - player_blink_time > 0.1:
+            player_blink_time = time.time()
+            if player_blinking:
+                remove_flash()
+                player_blinking = False
+            else:
+                player.surface.fill((200, 150, 150), special_flags=pygame.BLEND_RGB_ADD)
+                player_blinking = True
 
         # handle movement
         key = pygame.key.get_pressed()
@@ -335,6 +377,13 @@ while running:
                 sprite.rectoff = sprite.rect
                 sprite.rect = sprite.surface.get_rect(topleft=(sprite.rect.x - player.x, sprite.rect.y))
             screen.blit(sprite.surface, sprite.rect)
+        element: HealthHeart
+        for index, element in enumerate(health_sprites, start=1):
+            filled = True if index <= player_health else False
+            element.update(filled)
+        hud_elements: Sprite
+        for hud_elements in hud_sprites:
+            screen.blit(hud_elements.surface, hud_elements.rect)
 
         player.update()
 

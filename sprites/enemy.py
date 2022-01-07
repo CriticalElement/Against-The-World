@@ -49,3 +49,4 @@ class StaticEnemy(Enemy):
         self.projectile = Projectile('images/fireball.png', start_pos, (pygame.player.x, pygame.player.y + 50),
                                      5)
         pygame.all_sprites.add(self.projectile)
+        pygame.damaging_sprites.add(self.projectile)
