@@ -2,7 +2,7 @@ import time
 import typing
 
 import pygame
-from pygame.locals import K_w, K_a, K_d
+from pygame.locals import K_w, K_a, K_d, K_SPACE
 
 from helper import *
 from gamestate import GameState
@@ -71,8 +71,8 @@ other_leg_index = 6
 time_since_bob = time.time()
 arm_rotations = [5, 10, 15, 20, 25, 30, 35, 40, 30, 20, 10, 0, -10, -20, -30, -40, -35, -30, -25, -20, -15, -10, -5]
 arm_rotation_index = 0
-is_arm_rotating = True
-should_arm_rotate = True
+is_arm_rotating = False
+should_arm_rotate = False
 arm_rotation_direction = 'Right'
 sword_swinging = False
 sword_damage = 10
@@ -119,7 +119,6 @@ while running:
         # handle damage collision
         if (collision := pygame.sprite.spritecollideany(player, damaging_sprites)) and time.time() - last_hit_time > 2:
             collision.kill()
-            print('player collided')
             last_hit_time = time.time()
             player_health -= 1
             if player_health == 0:
@@ -148,7 +147,7 @@ while running:
 
         # handle movement
         key = pygame.key.get_pressed()
-        if key[K_w]:
+        if key[K_w] or key[K_SPACE]:
             player.jump()
         if key[K_a] and player.can_move_left:
             if not player.can_move_right:
