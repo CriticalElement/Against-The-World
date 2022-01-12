@@ -2,7 +2,7 @@ import time
 import typing
 
 import pygame
-from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q
+from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q, K_e
 
 from helper import *
 from gamestate import GameState
@@ -79,6 +79,7 @@ sword_damage = 10
 hit_enemy = None
 hit_time = time.time()
 updraft_time = 0
+dash_time = 0
 
 # TODO: randomly generate this and load this from a database
 enemy_locations = [600]
@@ -164,9 +165,16 @@ while running:
             player.can_move_left = True
             if player.x_vel > 10:
                 player.x_vel = 10
-        elif key[K_q] and time.time() - updraft_time > 5:
+        if key[K_q] and time.time() - updraft_time > 5:
             player.y_vel -= 25
             updraft_time = time.time()
+        if key[K_e] and time.time() - dash_time > 5:
+            if head_direction == 'Right':
+                player.x_vel += 10
+            else:
+                player.x_vel -= 10
+            dash_time = time.time()
+    
 
         if 0 < player.x_vel < 1:
             player.x_vel = 0
