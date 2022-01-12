@@ -5,7 +5,7 @@ import random
 import pygame
 import sqlite3
 
-from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q
+from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q, K_e
 
 from helper import *
 from gamestate import GameState
@@ -86,6 +86,7 @@ sword_damage = 10
 hit_enemy = None
 hit_time = time.time()
 updraft_time = 0
+dash_time = 0
 
 for enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
     enemy = Sprite
@@ -192,6 +193,12 @@ while running:
         if key[K_q] and time.time() - updraft_time > 5:
             player.y_vel = -25
             updraft_time = time.time()
+        if key[K_e] and time.time() - dash_time > 5:
+            if head_direction == 'Right':
+                player.x_vel += 10
+            else:
+                player.x_vel -= 10
+            dash_time = time.time()
 
         if 0 < player.x_vel < 1:
             player.x_vel = 0
