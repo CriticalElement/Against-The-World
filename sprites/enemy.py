@@ -13,6 +13,7 @@ class Enemy(Sprite):
         super(Enemy, self).__init__(*args)
         self.shoot_func = shoot_func
         self.shoot_event = pygame.USEREVENT + 1
+        pygame.USEREVENT += 1  # make sure other sprites can create events
         self.health = health
         pygame.time.set_timer(self.shoot_event, shoot_delay)
         event_mappings[self.shoot_event] = self.shoot_func
@@ -28,7 +29,7 @@ class Enemy(Sprite):
 
 
 class StaticEnemy(Enemy):
-    def __init__(self, coords, dead=False, *args):
+    def __init__(self, coords, health, dead=False, *args):
         if dead:
             Sprite.__init__(self)
             self.surface = pygame.Surface((0, 0))
@@ -36,7 +37,7 @@ class StaticEnemy(Enemy):
             self.rect = self.surface.get_rect()
             self.rectoff = self.rect
             return
-        super(StaticEnemy, self).__init__(3000, self.shoot, 50, *args)
+        super(StaticEnemy, self).__init__(3000, self.shoot, health, *args)
         self.surface = pygame.image.load('images/staticenemy1.png')
         self.original_surface = self.surface.copy()
         self.rect = self.surface.get_rect(topleft=coords)

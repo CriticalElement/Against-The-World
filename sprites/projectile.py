@@ -19,7 +19,12 @@ class Projectile(Sprite):
         end_pos_x, end_pos_y = end_pos
         start_pos_x, start_pos_y = start_pos
         self.angle = math.atan2(end_pos_y - start_pos_y, end_pos_x - start_pos_x)
-        rotated = pygame.transform.rotate(self.surface, self.angle * 4)
+        if end_pos_x > start_pos_x:
+            # if the target is behind the staring position - flip the fireball so it is "upright"
+            rotated = pygame.transform.rotate(self.surface, math.degrees(self.angle) - 180)  # offset for default image
+            rotated = pygame.transform.flip(rotated, False, True)
+        else:
+            rotated = pygame.transform.rotate(self.surface, -math.degrees(self.angle) - 180)  # offset for default image
         self.surface = rotated
         self.rect = self.surface.get_rect(center=self.rect.center)
         self.rectoff = self.rect

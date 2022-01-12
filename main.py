@@ -1,7 +1,10 @@
 import time
 import typing
+import random
 
 import pygame
+import sqlite3
+
 from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q
 
 from helper import *
@@ -17,6 +20,10 @@ from sprites.hud import *
 # initialize the window
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption('Against The World')
+
+# connect to database
+conn = sqlite3.connect('misc/database.db')
+cursor = conn.cursor()
 
 events = []
 game_state = GameState(events)
@@ -80,12 +87,25 @@ hit_enemy = None
 hit_time = time.time()
 updraft_time = 0
 
-# TODO: randomly generate this and load this from a database
-enemy_locations = [600]
-for location in enemy_locations:
-    enemy = StaticEnemy((location, 294))
-    enemies.add(enemy)
+for enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
+    enemy = Sprite
+    if enemy_type == 'static':
+        enemy = StaticEnemy((xpos, ypos), health, dead=bool(dead))
     all_sprites.add(enemy)
+    enemies.add(enemy)
+
+if len(enemies) == 0:
+    start = 1200
+    enemy_positions = []
+    for x in range(0, 5):
+        enemy_positions.append(start)
+        start += random.randint(1000, 2000)
+    for enemy_pos in enemy_positions:
+        enemy = StaticEnemy((enemy_pos, 294), 50)
+        all_sprites.add(enemy)
+        enemies.add(enemy)
+        cursor.execute('INSERT INTO enemies VALUES ("static", ?, 294, 50, 0)', (enemy_pos,))
+    conn.commit()
 
 # game loop
 clock = pygame.time.Clock()
@@ -109,7 +129,9 @@ while running:
     if game_state.state == 'Game':
         # handle enemy collision
         if enemy := pygame.sprite.spritecollideany(player, enemies):
-            if player.rect.x < enemy.rect.x:
+            if player.rect.y + 50 < enemy.rect.topleft[1]:
+                player.ground_height = player.y
+            elif player.rect.x < enemy.rect.x:
                 # player is to the left of the enemy
                 player.x_vel = 0
                 player.can_move_right = False
@@ -117,6 +139,9 @@ while running:
                 # player is to the right of the enemy
                 player.x_vel = 0
                 player.can_move_left = False
+        else:
+            if player.ground_height < 300:
+                player.ground_height = 355
         # handle damage collision
         if (collision := pygame.sprite.spritecollideany(player, damaging_sprites)) and time.time() - last_hit_time > 2:
             collision.kill()
@@ -164,8 +189,8 @@ while running:
             player.can_move_left = True
             if player.x_vel > 10:
                 player.x_vel = 10
-        elif key[K_q] and time.time() - updraft_time > 5:
-            player.y_vel -= 25
+        if key[K_q] and time.time() - updraft_time > 5:
+            player.y_vel = -25
             updraft_time = time.time()
 
         if 0 < player.x_vel < 1:
@@ -314,12 +339,13 @@ while running:
                 else:
                     current_index = current_index + 1
                     other_leg_index = other_leg_index + 1
-                if time.time() - time_since_bob > 0.1:
+                if (timeoff := time.time() - time_since_bob) > 0.1:
                     # bob player up and down with walk cycle
-                    if player.ground_height == 355:
-                        player.ground_height = 353
+                    if torso_bobbing:
+                        player.ground_height -= 2
                     else:
-                        player.ground_height = 355
+                        player.ground_height += 2
+                    torso_bobbing = not torso_bobbing
                     time_since_bob = time.time()
         if player.x_vel > 0:
             if head_direction != 'Right':
@@ -353,20 +379,21 @@ while running:
                     other_leg_index = other_leg_index + 1
                 if time.time() - time_since_bob > 0.1:
                     # bob player up and down with walk cycle
-                    if player.ground_height == 355:
-                        player.ground_height = 353
+                    if torso_bobbing:
+                        player.ground_height -= 2
                     else:
-                        player.ground_height = 355
+                        player.ground_height += 2
+                    torso_bobbing = not torso_bobbing
                     time_since_bob = time.time()
         if -3 < player.x_vel < 3:
             # reset the leg animation
             if leg_direction == 'Left':
                 player.left_leg.surface = pygame.image.load('images/leg0.png')
                 player.right_leg.surface = pygame.image.load('images/leg0.png')
-                player.ground_height = 355
             else:
                 player.left_leg.surface = pygame.image.load('images/rleg0.png')
                 player.right_leg.surface = pygame.image.load('images/rleg0.png')
+            if player.ground_height > 300:
                 player.ground_height = 355
 
         # background
