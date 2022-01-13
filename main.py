@@ -87,6 +87,7 @@ hit_enemy = None
 hit_time = time.time()
 updraft_time = 0
 dash_time = 0
+is_dashing = False
 
 for enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
     enemy = Sprite
@@ -144,7 +145,8 @@ while running:
             if player.ground_height < 300:
                 player.ground_height = 355
         # handle damage collision
-        if (collision := pygame.sprite.spritecollideany(player, damaging_sprites)) and time.time() - last_hit_time > 2:
+        if (collision := pygame.sprite.spritecollideany(player, damaging_sprites)) and time.time() - last_hit_time > 2\
+                and not is_dashing:
             collision.kill()
             last_hit_time = time.time()
             player_health -= 1
@@ -179,25 +181,37 @@ while running:
         if key[K_a] and player.can_move_left:
             if not player.can_move_right:
                 player.x_vel -= 2
-            player.x_vel -= 2
+            if not is_dashing:
+                player.x_vel -= 2
             player.can_move_right = True
             if player.x_vel < -10:
-                player.x_vel = -10
+                if not is_dashing:  # remove the speed limit when dashing
+                    player.x_vel = -10
+            elif player.x_vel > -20 and is_dashing:
+                is_dashing = False  # re-add the speed limit after dashing
+                remove_flash()
         elif key[K_d] and player.can_move_right:
             if not player.can_move_left:
                 player.x_vel += 2
-            player.x_vel += 2
+            if not is_dashing:
+                player.x_vel += 2
             player.can_move_left = True
             if player.x_vel > 10:
-                player.x_vel = 10
+                if not is_dashing:  # remove the speed limit when dashing
+                    player.x_vel = 10
+            elif player.x_vel < 20 and is_dashing:
+                is_dashing = False  # re-add the speed limit after dashing
+                remove_flash()
         if key[K_q] and time.time() - updraft_time > 5:
             player.y_vel = -25
             updraft_time = time.time()
         if key[K_e] and time.time() - dash_time > 5:
+            is_dashing = True
+            player.surface.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MULT)
             if head_direction == 'Right':
-                player.x_vel += 10
+                player.x_vel = 30
             else:
-                player.x_vel -= 10
+                player.x_vel = -30
             dash_time = time.time()
 
         if 0 < player.x_vel < 1:
