@@ -39,10 +39,6 @@ enemies = pygame.sprite.Group()
 damaging_sprites = pygame.sprite.Group()
 hud_sprites = pygame.sprite.Group()
 health_sprites = pygame.sprite.Group()
-for x in range(5):
-    heart = HealthHeart(True, (x * 35 + 10, 10))
-    hud_sprites.add(heart)
-    health_sprites.add(heart)
 
 ground_coords = {}
 for x in range(-7500, 7500, 750):
@@ -53,6 +49,8 @@ player = Player()
 pygame.player = player
 pygame.all_sprites = all_sprites
 pygame.damaging_sprites = damaging_sprites
+pygame.cursor = cursor
+pygame.conn = conn
 all_sprites.add(player.left_arm)
 all_sprites.add(player.right_arm)
 all_sprites.add(player.left_leg)
@@ -88,13 +86,22 @@ hit_time = time.time()
 updraft_time = 0
 dash_time = 0
 is_dashing = False
+updraft_unlocked = False
+dash_unlocked = False
 
-for enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
+for id_, enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
     enemy = Sprite
     if enemy_type == 'static':
-        enemy = StaticEnemy((xpos, ypos), health, dead=bool(dead))
+        enemy = StaticEnemy((xpos, ypos), health, id_, dead=bool(dead))
     all_sprites.add(enemy)
     enemies.add(enemy)
+
+for health, updraft, dash, xpos, ypos in cursor.execute('SELECT * FROM stats'):
+    player_health = health
+    updraft_unlocked = bool(updraft)
+    dash_unlocked = bool(dash)
+    player.x = xpos
+    player.y = ypos
 
 if len(enemies) == 0:
     start = 1200
@@ -103,11 +110,21 @@ if len(enemies) == 0:
         enemy_positions.append(start)
         start += random.randint(1000, 2000)
     for enemy_pos in enemy_positions:
-        enemy = StaticEnemy((enemy_pos, 294), 50)
+        id_ = random.randint(1000000, 10000000)  # generate random id for selecting specific enemy with database
+        enemy = StaticEnemy((enemy_pos, 294), 50, id_)
         all_sprites.add(enemy)
         enemies.add(enemy)
-        cursor.execute('INSERT INTO enemies VALUES ("static", ?, 294, 50, 0)', (enemy_pos,))
+        cursor.execute('INSERT INTO enemies VALUES (?, "static", ?, 294, 50, 0)', (id_, enemy_pos))
+    cursor.execute('DELETE FROM stats')
     conn.commit()
+    cursor.execute('INSERT INTO stats VALUES (5, 0, 0, 0, 350)')
+    conn.commit()
+
+for x in range(5):
+    alive = True if x <= player_health else False
+    heart = HealthHeart(alive, (x * 35 + 10, 10))
+    hud_sprites.add(heart)
+    health_sprites.add(heart)
 
 # game loop
 clock = pygame.time.Clock()
@@ -150,9 +167,17 @@ while running:
             collision.kill()
             last_hit_time = time.time()
             player_health -= 1
+            cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)',
+                           (player_health, int(updraft_unlocked), int(dash_unlocked),
+                            player.x, player.y))
+            conn.commit()
             if player_health == 0:
                 # TODO: implement game over screen with menu and retry options
                 running = False
+                player_health = 5
+                cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)',
+                               (player_health, int(updraft_unlocked), int(dash_unlocked),
+                                player.x, player.y))
 
         time_diff = time.time() - last_hit_time if last_hit_time != 0 else 0
 
@@ -187,9 +212,6 @@ while running:
             if player.x_vel < -10:
                 if not is_dashing:  # remove the speed limit when dashing
                     player.x_vel = -10
-            elif player.x_vel > -20 and is_dashing:
-                is_dashing = False  # re-add the speed limit after dashing
-                remove_flash()
         elif key[K_d] and player.can_move_right:
             if not player.can_move_left:
                 player.x_vel += 2
@@ -199,9 +221,6 @@ while running:
             if player.x_vel > 10:
                 if not is_dashing:  # remove the speed limit when dashing
                     player.x_vel = 10
-            elif player.x_vel < 20 and is_dashing:
-                is_dashing = False  # re-add the speed limit after dashing
-                remove_flash()
         if key[K_q] and time.time() - updraft_time > 5:
             player.y_vel = -25
             updraft_time = time.time()
@@ -213,6 +232,9 @@ while running:
             else:
                 player.x_vel = -30
             dash_time = time.time()
+        if -5 < player.x_vel < 5 and is_dashing:
+            is_dashing = False
+            remove_flash()
 
         if 0 < player.x_vel < 1:
             player.x_vel = 0
@@ -270,6 +292,9 @@ while running:
                                 enemy_collision.surface.fill((200, 150, 150), special_flags=pygame.BLEND_RGB_ADD)
                                 hit_enemy = enemy_collision
                                 hit_time = time.time()
+                                cursor.execute('UPDATE enemies SET health = ? WHERE id=?', (enemy_collision.health,
+                                                                                            enemy_collision.id))
+                                conn.commit()
             else:
                 player.right_arm.rect, player.right_arm.surface = player.right_arm.rectoff, \
                                                                   player.right_arm.original_surface
@@ -441,4 +466,8 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
+
+cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)', (player_health, int(updraft_unlocked), int(dash_unlocked),
+                                                            player.x, player.y))
+conn.commit()
 pygame.quit()
