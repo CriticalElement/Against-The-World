@@ -52,8 +52,8 @@ class StaticEnemy(Enemy):
         self.projectile = None
 
     def shoot(self):
-        start_pos = (self.rect.x + 40 + pygame.player.x, self.rect.y + 60)
-        self.projectile = Projectile('images/fireball.png', start_pos, (pygame.player.x, pygame.player.y + 50),
-                                     5)
-        pygame.all_sprites.add(self.projectile)
-        pygame.damaging_sprites.add(self.projectile)
+        if 0 < self.rect.x < 800:  # make sure enemy is shooting only when visible on the screen
+            start_pos = (self.rect.x + 40 + pygame.player.x, self.rect.y + 60)
+            self.projectile = Projectile('images/fireball.png', start_pos, (pygame.player.x, pygame.player.y + 50), 5)
+            pygame.all_sprites.add(self.projectile)
+            pygame.damaging_sprites.add(self.projectile)

@@ -21,8 +21,8 @@ class UIElement(pygame.sprite.Sprite):
 
 
 class Button(UIElement):
-    def __init__(self, callback, *args):
-        super(Button, self).__init__(*args)
+    def __init__(self, callback, *args, **kwargs):
+        super(Button, self).__init__(*args, **kwargs)
         self.callback = callback
 
     def update(self, event):

@@ -7,6 +7,8 @@ pygame.init()
 class GameState:
     menu = 'Menu'
     game = 'Game'
+    pause = 'Pause'
+    game_over = 'Game Over'
 
     def __init__(self, events):
         self.state = self.menu

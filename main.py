@@ -41,7 +41,7 @@ hud_sprites = pygame.sprite.Group()
 health_sprites = pygame.sprite.Group()
 
 ground_coords = {}
-for x in range(-7500, 7500, 750):
+for x in range(-750, 15000, 750):
     ground_coords[x] = Ground((x, 450))
     ground_tiles.add(ground_coords[x])
     all_sprites.add(ground_coords[x])
@@ -88,6 +88,28 @@ dash_time = 0
 is_dashing = False
 updraft_unlocked = False
 dash_unlocked = False
+updraft_icon = UpdraftIcon(True, 0)
+hud_sprites.add(updraft_icon)
+dash_icon = DashIcon(True, 0)
+hud_sprites.add(dash_icon)
+pause_icon = Button(lambda: game_state.change_state(game_state.pause), (785, 15), image='images/pause.png')
+hud_sprites.add(pause_icon)
+
+game_over_elements = pygame.sprite.Group()
+continue_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'CONTINUE')
+menu_button = Button(lambda: game_state.change_state(game_state.menu), (400, 400), 'MENU')
+game_over_text = UIElement((400, 100), 'GAME OVER')
+game_over_elements.add(continue_button)
+game_over_elements.add(game_over_text)
+game_over_elements.add(menu_button)
+
+pause_menu_elements = pygame.sprite.Group()
+resume = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'RESUME')
+menu_pause_button = Button(lambda: game_state.change_state(game_state.menu), (400, 400), 'MENU')
+pause_text = UIElement((400, 100), 'PAUSED')
+pause_menu_elements.add(resume)
+pause_menu_elements.add(menu_pause_button)
+pause_menu_elements.add(pause_text)
 
 for id_, enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
     enemy = Sprite
@@ -115,6 +137,7 @@ if len(enemies) == 0:
         all_sprites.add(enemy)
         enemies.add(enemy)
         cursor.execute('INSERT INTO enemies VALUES (?, "static", ?, 294, 50, 0)', (id_, enemy_pos))
+        conn.commit()
     cursor.execute('DELETE FROM stats')
     conn.commit()
     cursor.execute('INSERT INTO stats VALUES (5, 0, 0, 0, 350)')
@@ -145,6 +168,22 @@ while running:
                 element.update(event)
             screen.blit(element.surface, element.rect)
 
+    if game_state.state == 'Pause':
+        screen.fill((135, 206, 235))
+        element: UIElement
+        for element in pause_menu_elements:
+            for event in events:
+                element.update(event)
+            screen.blit(element.surface, element.rect)
+
+    if game_state.state == 'Game Over':
+        screen.fill((255, 87, 112))
+        element: UIElement
+        for element in game_over_elements:
+            for event in events:
+                element.update(event)
+            screen.blit(element.surface, element.rect)
+
     if game_state.state == 'Game':
         # handle enemy collision
         if enemy := pygame.sprite.spritecollideany(player, enemies):
@@ -167,22 +206,28 @@ while running:
             collision.kill()
             last_hit_time = time.time()
             player_health -= 1
+            cursor.execute('DELETE FROM stats')
+            conn.commit()
             cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)',
                            (player_health, int(updraft_unlocked), int(dash_unlocked),
                             player.x, player.y))
             conn.commit()
             if player_health == 0:
                 # TODO: implement game over screen with menu and retry options
-                running = False
                 player_health = 5
+                cursor.execute('DELETE FROM stats')
+                conn.commit()
                 cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)',
                                (player_health, int(updraft_unlocked), int(dash_unlocked),
                                 player.x, player.y))
+                conn.commit()
+                game_state.change_state(game_state.game_over)
 
         time_diff = time.time() - last_hit_time if last_hit_time != 0 else 0
 
         def remove_flash():
-            player.surface = pygame.image.load('images/headandtorso.png')
+            player.original_surface = pygame.image.load('images/headandtorso.png')
+            player.surface = player.original_surface.copy()
             if head_direction == 'Left':
                 player.surface = pygame.transform.flip(player.surface, True, False)
 
@@ -190,12 +235,14 @@ while running:
         if time_diff > 2:
             remove_flash()
             player_blinking = False
+            player_blink_time = 0
         elif 0 < time_diff < 2 and time.time() - player_blink_time > 0.1:
             player_blink_time = time.time()
             if player_blinking:
                 remove_flash()
                 player_blinking = False
             else:
+                player.surface = player.surface.copy()
                 player.surface.fill((200, 150, 150), special_flags=pygame.BLEND_RGB_ADD)
                 player_blinking = True
 
@@ -226,32 +273,42 @@ while running:
             updraft_time = time.time()
         if key[K_e] and time.time() - dash_time > 5:
             is_dashing = True
+            remove_flash()
+            last_hit_time = 0
+            player_blinking = False
+            player_blink_time = 0
+            player.surface = player.surface.copy()
             player.surface.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MULT)
             if head_direction == 'Right':
-                player.x_vel = 30
+                player.x_vel = 50
             else:
-                player.x_vel = -30
+                player.x_vel = -50
             dash_time = time.time()
         if -5 < player.x_vel < 5 and is_dashing:
             is_dashing = False
             remove_flash()
+            player_blinking = False
+            player_blink_time = 0
 
         if 0 < player.x_vel < 1:
             player.x_vel = 0
         if -1 < player.x_vel < 0:
             player.x_vel = 0
-        if player.x < -7550:
-            player.x = -7550
-        if player.x > 7400:
-            player.x = 7400
+        if player.x < -800:
+            player.x = -800
+        if player.x > 14900:
+            player.x = 14900
 
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if is_arm_rotating:
-                    should_arm_rotate = True
-                else:
-                    is_arm_rotating = True
-                    arm_rotation_direction = player.sword_direction
+                if not pause_icon.rect.collidepoint(event.pos):
+                    if is_arm_rotating:
+                        should_arm_rotate = True
+                    else:
+                        is_arm_rotating = True
+                        arm_rotation_direction = player.sword_direction
+            if event.type == pygame.MOUSEBUTTONUP and pause_icon.rect.collidepoint(event.pos):
+                pause_icon.update(event)
             if event.type in event_mappings:
                 event_mappings[event.type]()
 
@@ -458,6 +515,9 @@ while running:
             filled = True if index <= player_health else False
             element.update(filled)
         hud_elements: Sprite
+        updraft_icon.update(True, updraft_time)
+        dash_icon.update(True, dash_time)
+
         for hud_elements in hud_sprites:
             screen.blit(hud_elements.surface, hud_elements.rect)
 
@@ -467,6 +527,8 @@ while running:
     clock.tick(60)
 
 
+cursor.execute('DELETE FROM stats')
+conn.commit()
 cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)', (player_health, int(updraft_unlocked), int(dash_unlocked),
                                                             player.x, player.y))
 conn.commit()
