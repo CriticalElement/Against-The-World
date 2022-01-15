@@ -5,7 +5,7 @@ import random
 import pygame
 import sqlite3
 
-from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q, K_e
+from pygame.locals import K_w, K_a, K_d, K_SPACE, K_q, K_e, K_ESCAPE
 
 from helper import *
 from gamestate import GameState
@@ -15,6 +15,7 @@ from sprites.sprite import Sprite
 from sprites.menu import *
 from sprites.enemy import *
 from sprites.hud import *
+from sprites.powerups import *
 
 
 # initialize the window
@@ -88,12 +89,13 @@ dash_time = 0
 is_dashing = False
 updraft_unlocked = False
 dash_unlocked = False
-updraft_icon = UpdraftIcon(True, 0)
+updraft_icon = UpdraftIcon(updraft_unlocked, 0)
 hud_sprites.add(updraft_icon)
-dash_icon = DashIcon(True, 0)
+dash_icon = DashIcon(dash_unlocked, 0)
 hud_sprites.add(dash_icon)
 pause_icon = Button(lambda: game_state.change_state(game_state.pause), (785, 15), image='images/pause.png')
 hud_sprites.add(pause_icon)
+powerups = pygame.sprite.Group()
 
 game_over_elements = pygame.sprite.Group()
 continue_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'CONTINUE')
@@ -111,10 +113,48 @@ pause_menu_elements.add(resume)
 pause_menu_elements.add(menu_pause_button)
 pause_menu_elements.add(pause_text)
 
-for id_, enemy_type, xpos, ypos, health, dead in cursor.execute('SELECT * FROM enemies'):
+
+def unlock_updraft():
+    global updraft_unlocked
+    updraft_unlocked = True
+    cursor.execute('DELETE FROM stats')
+    conn.commit()
+    cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)', (player_health, int(updraft_unlocked),
+                                                                int(dash_unlocked), player.x, player.y))
+    conn.commit()
+
+
+def unlock_dash():
+    global dash_unlocked
+    dash_unlocked = True
+    cursor.execute('DELETE FROM stats')
+    conn.commit()
+    cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)', (player_health, int(updraft_unlocked),
+                                                                int(dash_unlocked), player.x, player.y))
+    conn.commit()
+
+
+def create_updraft():
+    updraft_powerup = UpdraftPowerup((player.x + 200, 280), unlock_updraft)
+    all_sprites.add(updraft_powerup)
+    powerups.add(updraft_powerup)
+
+
+def create_dash():
+    dash_powerup = DashPowerup((player.x + 200, 100), unlock_dash)
+    all_sprites.add(dash_powerup)
+    powerups.add(dash_powerup)
+
+
+for index, (id_, enemy_type, xpos, ypos, health, dead) in enumerate(cursor.execute('SELECT * FROM enemies')):
     enemy = Sprite
     if enemy_type == 'static':
-        enemy = StaticEnemy((xpos, ypos), health, id_, dead=bool(dead))
+        callback = create_updraft if index == 4 else lambda: None
+        print(index)
+        enemy = StaticEnemy((xpos, ypos), health, id_, callback=callback, dead=bool(dead))
+    elif enemy_type == 'flying':
+        callback = create_dash if index == 2 else lambda: None
+        enemy = FlyingEnemy((xpos, ypos), health, id_, callback=callback, dead=bool(dead))
     all_sprites.add(enemy)
     enemies.add(enemy)
 
@@ -131,12 +171,25 @@ if len(enemies) == 0:
     for x in range(0, 5):
         enemy_positions.append(start)
         start += random.randint(1000, 2000)
-    for enemy_pos in enemy_positions:
+    for index, enemy_pos in enumerate(enemy_positions):
         id_ = random.randint(1000000, 10000000)  # generate random id for selecting specific enemy with database
-        enemy = StaticEnemy((enemy_pos, 294), 50, id_)
+        callback = create_updraft if index == 4 else lambda: None
+        enemy = StaticEnemy((enemy_pos, 294), 50, id_, callback=callback)
         all_sprites.add(enemy)
         enemies.add(enemy)
         cursor.execute('INSERT INTO enemies VALUES (?, "static", ?, 294, 50, 0)', (id_, enemy_pos))
+        conn.commit()
+    for x in range(0, 3):
+        enemy_positions.append(start)
+        start += random.randint(1000, 2000)
+    enemy_positions = enemy_positions[-3:]  # use the newly created enemy positions
+    for index, enemy_pos in enumerate(enemy_positions):
+        id_ = random.randint(1000000, 10000000)
+        callback = create_dash if index == 2 else lambda: None
+        enemy = FlyingEnemy((enemy_pos, 100), 10, id_, callback=callback)
+        all_sprites.add(enemy)
+        enemies.add(enemy)
+        cursor.execute('INSERT INTO enemies VALUES (?, "flying", ?, 100, 10, 0)', (id_, enemy_pos))
         conn.commit()
     cursor.execute('DELETE FROM stats')
     conn.commit()
@@ -187,16 +240,19 @@ while running:
     if game_state.state == 'Game':
         # handle enemy collision
         if enemy := pygame.sprite.spritecollideany(player, enemies):
-            if player.rect.y + 50 < enemy.rect.topleft[1]:
+            if player.rect.y + 50 < enemy.rect.topleft[1] and isinstance(enemy, StaticEnemy):  # make sure you only land
+                # on static enemies
                 player.ground_height = player.y
             elif player.rect.x < enemy.rect.x:
                 # player is to the left of the enemy
-                player.x_vel = 0
-                player.can_move_right = False
+                if isinstance(enemy, StaticEnemy):
+                    player.x_vel = 0
+                    player.can_move_right = False
             else:
                 # player is to the right of the enemy
-                player.x_vel = 0
-                player.can_move_left = False
+                if isinstance(enemy, StaticEnemy):
+                    player.x_vel = 0
+                    player.can_move_left = False
         else:
             if player.ground_height < 300:
                 player.ground_height = 355
@@ -222,6 +278,12 @@ while running:
                                 player.x, player.y))
                 conn.commit()
                 game_state.change_state(game_state.game_over)
+        # handle powerup collection
+        powerup: typing.Union[Powerup, Sprite]
+        if powerup := pygame.sprite.spritecollideany(player, powerups):
+            powerup.collect()
+            all_sprites.remove(powerup)
+            powerups.remove(powerup)
 
         time_diff = time.time() - last_hit_time if last_hit_time != 0 else 0
 
@@ -268,10 +330,10 @@ while running:
             if player.x_vel > 10:
                 if not is_dashing:  # remove the speed limit when dashing
                     player.x_vel = 10
-        if key[K_q] and time.time() - updraft_time > 5:
+        if key[K_q] and time.time() - updraft_time > 5 and updraft_unlocked:
             player.y_vel = -25
             updraft_time = time.time()
-        if key[K_e] and time.time() - dash_time > 5:
+        if key[K_e] and time.time() - dash_time > 5 and dash_unlocked:
             is_dashing = True
             remove_flash()
             last_hit_time = 0
@@ -284,6 +346,9 @@ while running:
             else:
                 player.x_vel = -50
             dash_time = time.time()
+        if key[K_ESCAPE]:
+            pause_icon.callback()
+
         if -5 < player.x_vel < 5 and is_dashing:
             is_dashing = False
             remove_flash()
@@ -515,8 +580,8 @@ while running:
             filled = True if index <= player_health else False
             element.update(filled)
         hud_elements: Sprite
-        updraft_icon.update(True, updraft_time)
-        dash_icon.update(True, dash_time)
+        updraft_icon.update(updraft_unlocked, updraft_time)
+        dash_icon.update(dash_unlocked, dash_time)
 
         for hud_elements in hud_sprites:
             screen.blit(hud_elements.surface, hud_elements.rect)
