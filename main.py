@@ -42,6 +42,8 @@ def new_game():
     conn.commit()
     start = 1200
     enemy_positions = []
+    event_mappings.clear()
+
     for _ in range(0, 5):
         enemy_positions.append(start)
         start += random.randint(1000, 2000)
@@ -83,10 +85,19 @@ def start_new_game():
 
 
 new_game_button = Button(start_new_game, (400, 400), 'NEW GAME')
+
+
+def stop():
+    global running
+    running = False
+
+
+quit_button = Button(stop, (400, 500), 'QUIT')
 menu_elements = pygame.sprite.Group()
 menu_elements.add(play_button)
 menu_elements.add(menu_image)
 menu_elements.add(new_game_button)
+menu_elements.add(quit_button)
 
 all_sprites = pygame.sprite.Group()
 ground_tiles = pygame.sprite.Group()
@@ -152,7 +163,7 @@ hud_sprites.add(pause_icon)
 powerups = pygame.sprite.Group()
 
 game_over_elements = pygame.sprite.Group()
-continue_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'CONTINUE')
+continue_button = Button(start_new_game, (400, 300), 'TRY AGAIN')
 menu_button = Button(lambda: game_state.change_state(game_state.menu), (400, 400), 'MENU')
 game_over_text = UIElement((400, 100), 'GAME OVER')
 game_over_elements.add(continue_button)
@@ -167,10 +178,18 @@ pause_menu_elements.add(resume)
 pause_menu_elements.add(menu_pause_button)
 pause_menu_elements.add(pause_text)
 
+sword_sfx = pygame.mixer.Sound('sfx/swordpullout.mp3')
+hit_sfx = pygame.mixer.Sound('sfx/hit.wav')
+player_hit_sfx = pygame.mixer.Sound('sfx/playerhit.wav')
+updraft_sfx = pygame.mixer.Sound('sfx/updraft.mp3')
+dash_sfx = pygame.mixer.Sound('sfx/dash.wav')
+powerup_sfx = pygame.mixer.Sound('sfx/powerup.wav')
+
 
 def unlock_updraft():
     global updraft_unlocked
     updraft_unlocked = True
+    powerup_sfx.play()
     cursor.execute('DELETE FROM stats')
     conn.commit()
     cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)', (player_health, int(updraft_unlocked),
@@ -181,6 +200,7 @@ def unlock_updraft():
 def unlock_dash():
     global dash_unlocked
     dash_unlocked = True
+    powerup_sfx.play()
     cursor.execute('DELETE FROM stats')
     conn.commit()
     cursor.execute('INSERT INTO stats VALUES (?, ?, ?, ?, ?)', (player_health, int(updraft_unlocked),
@@ -195,7 +215,7 @@ def create_updraft():
 
 
 def create_dash():
-    dash_powerup = DashPowerup((player.x + 150, 100), unlock_dash)
+    dash_powerup = DashPowerup((player.x + 170, 100), unlock_dash)
     all_sprites.add(dash_powerup)
     powerups.add(dash_powerup)
 
@@ -288,6 +308,7 @@ while running:
         # handle damage collision
         if (collision := pygame.sprite.spritecollideany(player, damaging_sprites)) and time.time() - last_hit_time > 2\
                 and not is_dashing:
+            player_hit_sfx.play()
             collision.kill()
             last_hit_time = time.time()
             player_health -= 1
@@ -298,7 +319,6 @@ while running:
                             player.x, player.y))
             conn.commit()
             if player_health == 0:
-                # TODO: implement game over screen with menu and retry options
                 player_health = 5
                 cursor.execute('DELETE FROM stats')
                 conn.commit()
@@ -362,7 +382,9 @@ while running:
         if key[K_q] and time.time() - updraft_time > 5 and updraft_unlocked:
             player.y_vel = -25
             updraft_time = time.time()
+            updraft_sfx.play()
         if key[K_e] and time.time() - dash_time > 5 and dash_unlocked:
+            dash_sfx.play()
             is_dashing = True
             remove_flash()
             last_hit_time = 0
@@ -428,6 +450,7 @@ while running:
                                                                              arm_rotations[arm_rotation_index])
                 if arm_rotation_index == 0:
                     sword_swinging = True
+                    sword_sfx.play()
                 if arm_rotation_index == len(arm_rotations) - 1:
                     arm_rotation_index = 0
                     is_arm_rotating = False
@@ -446,6 +469,7 @@ while running:
                                 cursor.execute('UPDATE enemies SET health = ? WHERE id=?', (enemy_collision.health,
                                                                                             enemy_collision.id))
                                 conn.commit()
+                                hit_sfx.play()
             else:
                 player.right_arm.rect, player.right_arm.surface = player.right_arm.rectoff, \
                                                                   player.right_arm.original_surface
@@ -459,7 +483,6 @@ while running:
                 arm_rotation_index = 0
                 arm_rotation_direction = 'Left'
             if is_arm_rotating:
-
                 player.left_arm.rect, player.left_arm.surface = rotate_along_pivot(player.left_arm,
                                                                                    (player.left_arm.rectoff.x +
                                                                                     player.left_arm.rectoff.width,
@@ -473,6 +496,7 @@ while running:
                                                                              -arm_rotations[arm_rotation_index])
                 if arm_rotation_index == 0:
                     sword_swinging = True
+                    sword_sfx.play()
                 if arm_rotation_index == len(arm_rotations) - 1:
                     arm_rotation_index = 0
                     is_arm_rotating = False
@@ -488,6 +512,10 @@ while running:
                                 enemy_collision.surface.fill((200, 150, 150), special_flags=pygame.BLEND_RGB_ADD)
                                 hit_enemy = enemy_collision
                                 hit_time = time.time()
+                                cursor.execute('UPDATE enemies SET health = ? WHERE id=?', (enemy_collision.health,
+                                                                                            enemy_collision.id))
+                                conn.commit()
+                                hit_sfx.play()
             else:
                 player.left_arm.rect, player.left_arm.surface = player.left_arm.rectoff, \
                                                                   player.left_arm.original_surface

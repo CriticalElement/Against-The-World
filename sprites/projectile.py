@@ -8,6 +8,9 @@ from sprites.sprite import Sprite
 __all__ = ('Projectile', )
 
 
+fireball_sfx = pygame.mixer.Sound('sfx/fireball.wav')
+
+
 class Projectile(Sprite):
     def __init__(self, image, start_pos, end_pos, speed, *args):
         super(Projectile, self).__init__(*args)
@@ -28,6 +31,7 @@ class Projectile(Sprite):
         self.surface = rotated
         self.rect = self.surface.get_rect(center=self.rect.center)
         self.rectoff = self.rect
+        fireball_sfx.play()
 
     def update(self, screen=None):
         super(Projectile, self).update(screen)
