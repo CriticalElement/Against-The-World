@@ -67,6 +67,12 @@ def new_game():
         enemies.add(enemy_)
         cursor.execute('INSERT INTO enemies VALUES (?, "flying", ?, 100, 10, 0)', (random_id, enemy_pos))
         conn.commit()
+    random_id = random.randint(1000000, 10000000)
+    boss_ = Boss((13000, 100), 50, random_id)
+    cursor.execute('INSERT INTO enemies VALUES (?, "boss", 13000, 75, 50, 0)', (random_id,))
+    all_sprites.add(boss_)
+    enemies.add(boss_)
+    conn.commit()
     cursor.execute('DELETE FROM stats')
     conn.commit()
     cursor.execute('INSERT INTO stats VALUES (5, 0, 0, 0, 350)')
@@ -227,8 +233,10 @@ for index, (id_, enemy_type, xpos, ypos, health, dead) in enumerate(cursor.execu
         print(index)
         enemy = StaticEnemy((xpos, ypos), health, id_, callback=callback, dead=bool(dead))
     elif enemy_type == 'flying':
-        callback = create_dash if index == 2 else lambda: None
+        callback = create_dash if index == 7 else lambda: None
         enemy = FlyingEnemy((xpos, ypos), health, id_, callback=callback, dead=bool(dead))
+    else:
+        enemy = Boss((13000, 75), 50, id_)
     all_sprites.add(enemy)
     enemies.add(enemy)
 

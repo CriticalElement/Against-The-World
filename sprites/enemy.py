@@ -7,7 +7,7 @@ from sprites.projectile import Projectile
 from helper import *
 
 
-__all__ = ('Enemy', 'StaticEnemy', 'FlyingEnemy')
+__all__ = ('Enemy', 'StaticEnemy', 'FlyingEnemy', 'Boss')
 
 
 class Enemy(Sprite):
@@ -98,5 +98,49 @@ class FlyingEnemy(Enemy):
 
     def update(self, *args, **kwargs):
         super(FlyingEnemy, self).update(*args, **kwargs)
+        self.rect = self.original_rect.move(0, math.sin(self.lifetime) * 30)
+        self.lifetime += 0.05
+
+
+class Boss(Enemy):
+    def __init__(self, coords, health, *args, dead=False, **kwargs):
+        if dead:
+            self.surface = pygame.Surface((0, 0))
+            self.original_surface = self.surface
+            self.rect = self.surface.get_rect()
+            self.rectoff = self.rect
+            self.health = 1
+            self.id = args[0]
+            self.shoot_event = None
+            self.callback = lambda: None
+            self.original_rect = self.rect
+            self.lifetime = 0
+            return
+        super(Boss, self).__init__(5000, self.shoot, health, *args, **kwargs)
+        self.surface = pygame.image.load('images/boss.png')
+        self.original_surface = self.surface.copy()
+        self.rect = self.surface.get_rect(topleft=coords)
+        self.original_rect = self.rect
+        print(self.rect)
+        self.rectoff = self.rect
+        self.projectile = None
+        self.lifetime = 0.07
+        self.laser_event = pygame.USEREVENT + 1
+        pygame.USEREVENT += 1
+        pygame.time.set_timer(self.laser_event, 7000)
+        event_mappings[self.laser_event] = self.laser_func
+
+    def shoot(self):
+        if 0 < self.rect.x < 800:  # make sure enemy is shooting only when visible on the screen
+            start_pos = (self.rect.x + 25 + pygame.player.x, self.rect.y + 12)
+            self.projectile = Projectile('images/fireball.png', start_pos, (pygame.player.x, pygame.player.y + 50), 5)
+            pygame.all_sprites.add(self.projectile)
+            pygame.damaging_sprites.add(self.projectile)
+
+    def laser_func(self):
+        print('laser')
+
+    def update(self, *args, **kwargs):
+        super(Boss, self).update(*args, **kwargs)
         self.rect = self.original_rect.move(0, math.sin(self.lifetime) * 30)
         self.lifetime += 0.05

@@ -46,3 +46,16 @@ class Projectile(Sprite):
         pygame.all_sprites.remove(self)
         pygame.damaging_sprites.remove(self)
         super(Projectile, self).kill()
+
+
+class Laserbeam(Sprite):
+    def __init__(self, sideways, *args):
+        super(Laserbeam, self).__init__(*args)
+        self.movements = 0
+        self.surface = pygame.image.load('images/laserbeam.png')
+        if sideways:
+            self.surface = pygame.transform.rotate(self.surface, 90)
+            coords = (-180, 280)
+        else:
+            coords = (0, -180)
+        self.rect = self.surface.get_rect(topleft=coords)
