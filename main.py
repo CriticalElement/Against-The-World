@@ -22,6 +22,7 @@ from sprites.powerups import *
 screen = pygame.display.set_mode((800, 600))
 pygame.screen = screen
 pygame.display.set_caption('Against The World')
+pygame.display.set_icon(pygame.image.load('images/sword.png'))
 
 # connect to database
 conn = sqlite3.connect('misc/database.db')
