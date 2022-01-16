@@ -9,6 +9,7 @@ class GameState:
     game = 'Game'
     pause = 'Pause'
     game_over = 'Game Over'
+    win = 'End'
 
     def __init__(self, events):
         self.state = self.menu

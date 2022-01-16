@@ -184,6 +184,14 @@ pause_menu_elements.add(resume)
 pause_menu_elements.add(menu_pause_button)
 pause_menu_elements.add(pause_text)
 
+win_elements = pygame.sprite.Group()
+new_game_win_button = Button(start_new_game, (400, 400), 'NEW GAME')
+menu_win_button = Button(lambda: game_state.change_state(game_state.menu), (400, 500), 'MENU')
+win_text = UIElement((400, 100), 'YOU WIN!')
+win_elements.add(new_game_win_button)
+win_elements.add(menu_win_button)
+win_elements.add(win_text)
+
 sword_sfx = pygame.mixer.Sound('sfx/swordpullout.mp3')
 hit_sfx = pygame.mixer.Sound('sfx/hit.wav')
 player_hit_sfx = pygame.mixer.Sound('sfx/playerhit.wav')
@@ -236,9 +244,10 @@ for index, (id_, enemy_type, xpos, ypos, health, dead) in enumerate(cursor.execu
         callback = create_dash if index == 7 else lambda: None
         enemy = FlyingEnemy((xpos, ypos), health, id_, callback=callback, dead=bool(dead))
     else:
-        enemy = Boss((13000, 75), 50, id_)
-    all_sprites.add(enemy)
-    enemies.add(enemy)
+        enemy = Boss((13000, 75), 50, id_, dead=bool(dead))
+    if not bool(dead):
+        enemies.add(enemy)
+        all_sprites.add(enemy)
 
 for health, updraft, dash, xpos, ypos in cursor.execute('SELECT * FROM stats'):
     player_health = health
@@ -246,9 +255,6 @@ for health, updraft, dash, xpos, ypos in cursor.execute('SELECT * FROM stats'):
     dash_unlocked = bool(dash)
     player.x = xpos
     player.y = ypos
-
-if len(enemies) == 0:
-    new_game()
 
 for x in range(5):
     alive = True if x <= player_health else False
@@ -289,6 +295,15 @@ while running:
         screen.fill((255, 87, 112))
         element: UIElement
         for element in game_over_elements:
+            element.update()
+            for event in events:
+                element.update(event)
+            screen.blit(element.surface, element.rect)
+
+    if game_state.state == 'End':
+        screen.fill((72, 212, 109))
+        element: UIElement
+        for element in win_elements:
             element.update()
             for event in events:
                 element.update(event)
@@ -435,6 +450,9 @@ while running:
                 pause_icon.update(event)
             if event.type in event_mappings:
                 event_mappings[event.type]()
+
+        if len(enemies) == 0:
+            game_state.change_state(game_state.win)
 
         if should_arm_rotate and not is_arm_rotating:
             is_arm_rotating = True

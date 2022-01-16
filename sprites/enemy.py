@@ -1,9 +1,10 @@
 import math
+import random
 
 import pygame
 
 from sprites.sprite import Sprite
-from sprites.projectile import Projectile
+from sprites.projectile import *
 from helper import *
 
 
@@ -105,6 +106,7 @@ class FlyingEnemy(Enemy):
 class Boss(Enemy):
     def __init__(self, coords, health, *args, dead=False, **kwargs):
         if dead:
+            super(Sprite, self).__init__()
             self.surface = pygame.Surface((0, 0))
             self.original_surface = self.surface
             self.rect = self.surface.get_rect()
@@ -114,9 +116,12 @@ class Boss(Enemy):
             self.shoot_event = None
             self.callback = lambda: None
             self.original_rect = self.rect
+            self.laser_event = None
+            self.laser_func = lambda: None
+            self.is_player = False
             self.lifetime = 0
             return
-        super(Boss, self).__init__(5000, self.shoot, health, *args, **kwargs)
+        super(Boss, self).__init__(4000, self.shoot, health, *args, **kwargs)
         self.surface = pygame.image.load('images/boss.png')
         self.original_surface = self.surface.copy()
         self.rect = self.surface.get_rect(topleft=coords)
@@ -138,9 +143,18 @@ class Boss(Enemy):
             pygame.damaging_sprites.add(self.projectile)
 
     def laser_func(self):
-        print('laser')
+        if 0 < self.rect.x < 800:
+            sideways = bool(random.randint(0, 1))
+            if sideways:
+                coords = (pygame.player.x, 330)
+            else:
+                coords = (pygame.player.x + 60, 50)
+            laser_beam_warning = LaserbeamWarning(coords, sideways)
+            pygame.all_sprites.add(laser_beam_warning)
 
     def update(self, *args, **kwargs):
         super(Boss, self).update(*args, **kwargs)
+        if self.health <= 0:
+            event_mappings.pop(self.laser_event, None)
         self.rect = self.original_rect.move(0, math.sin(self.lifetime) * 30)
         self.lifetime += 0.05
