@@ -25,7 +25,9 @@ class Button(UIElement):
         super(Button, self).__init__(*args, **kwargs)
         self.callback = callback
 
-    def update(self, event):
+    def update(self, event=None):
+        pygame.draw.rect(pygame.screen, (255, 255, 255), (self.rect.x - 10, self.rect.y - 5, self.rect.width + 15,
+                                                          self.rect.height + 10), width=4)
         if event and event.type == pygame.MOUSEBUTTONUP:
             if self.rect.collidepoint(event.pos):
                 self.callback()

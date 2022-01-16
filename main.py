@@ -20,6 +20,7 @@ from sprites.powerups import *
 
 # initialize the window
 screen = pygame.display.set_mode((800, 600))
+pygame.screen = screen
 pygame.display.set_caption('Against The World')
 
 # connect to database
@@ -30,9 +31,62 @@ events = []
 game_state = GameState(events)
 menu_image = UIElement((400, 150), image='images/againsttheworld.png')
 play_button = Button(lambda: game_state.change_state(game_state.game), (400, 300), 'PLAY')
+
+
+def new_game():
+    cursor.execute('DELETE FROM enemies')
+    cursor.execute('DELETE FROM stats')
+    for enemy_ in enemies.copy():
+        enemies.remove(enemy_)
+        all_sprites.remove(enemy_)
+    conn.commit()
+    start = 1200
+    enemy_positions = []
+    for _ in range(0, 5):
+        enemy_positions.append(start)
+        start += random.randint(1000, 2000)
+    for index_, enemy_pos in enumerate(enemy_positions):
+        random_id = random.randint(1000000, 10000000)  # generate random id for selecting specific enemy with database
+        killed_callback = create_updraft if index_ == 4 else lambda: None
+        enemy_ = StaticEnemy((enemy_pos, 294), 50, random_id, callback=killed_callback)
+        all_sprites.add(enemy_)
+        enemies.add(enemy_)
+        cursor.execute('INSERT INTO enemies VALUES (?, "static", ?, 294, 50, 0)', (random_id, enemy_pos))
+        conn.commit()
+    for _ in range(0, 3):
+        enemy_positions.append(start)
+        start += random.randint(1000, 2000)
+    enemy_positions = enemy_positions[-3:]  # use the newly created enemy positions
+    for index_, enemy_pos in enumerate(enemy_positions):
+        random_id = random.randint(1000000, 10000000)
+        killed_callback = create_dash if index_ == 2 else lambda: None
+        enemy_ = FlyingEnemy((enemy_pos, 100), 10, random_id, callback=killed_callback)
+        all_sprites.add(enemy_)
+        enemies.add(enemy_)
+        cursor.execute('INSERT INTO enemies VALUES (?, "flying", ?, 100, 10, 0)', (random_id, enemy_pos))
+        conn.commit()
+    cursor.execute('DELETE FROM stats')
+    conn.commit()
+    cursor.execute('INSERT INTO stats VALUES (5, 0, 0, 0, 350)')
+    player.x = 0
+    player.y = 350
+    global updraft_unlocked, dash_unlocked, player_health
+    updraft_unlocked = False
+    dash_unlocked = False
+    player_health = 5
+    conn.commit()
+
+
+def start_new_game():
+    new_game()
+    game_state.change_state(game_state.game)
+
+
+new_game_button = Button(start_new_game, (400, 400), 'NEW GAME')
 menu_elements = pygame.sprite.Group()
 menu_elements.add(play_button)
 menu_elements.add(menu_image)
+menu_elements.add(new_game_button)
 
 all_sprites = pygame.sprite.Group()
 ground_tiles = pygame.sprite.Group()
@@ -141,7 +195,7 @@ def create_updraft():
 
 
 def create_dash():
-    dash_powerup = DashPowerup((player.x + 200, 100), unlock_dash)
+    dash_powerup = DashPowerup((player.x + 150, 100), unlock_dash)
     all_sprites.add(dash_powerup)
     powerups.add(dash_powerup)
 
@@ -166,35 +220,7 @@ for health, updraft, dash, xpos, ypos in cursor.execute('SELECT * FROM stats'):
     player.y = ypos
 
 if len(enemies) == 0:
-    start = 1200
-    enemy_positions = []
-    for x in range(0, 5):
-        enemy_positions.append(start)
-        start += random.randint(1000, 2000)
-    for index, enemy_pos in enumerate(enemy_positions):
-        id_ = random.randint(1000000, 10000000)  # generate random id for selecting specific enemy with database
-        callback = create_updraft if index == 4 else lambda: None
-        enemy = StaticEnemy((enemy_pos, 294), 50, id_, callback=callback)
-        all_sprites.add(enemy)
-        enemies.add(enemy)
-        cursor.execute('INSERT INTO enemies VALUES (?, "static", ?, 294, 50, 0)', (id_, enemy_pos))
-        conn.commit()
-    for x in range(0, 3):
-        enemy_positions.append(start)
-        start += random.randint(1000, 2000)
-    enemy_positions = enemy_positions[-3:]  # use the newly created enemy positions
-    for index, enemy_pos in enumerate(enemy_positions):
-        id_ = random.randint(1000000, 10000000)
-        callback = create_dash if index == 2 else lambda: None
-        enemy = FlyingEnemy((enemy_pos, 100), 10, id_, callback=callback)
-        all_sprites.add(enemy)
-        enemies.add(enemy)
-        cursor.execute('INSERT INTO enemies VALUES (?, "flying", ?, 100, 10, 0)', (id_, enemy_pos))
-        conn.commit()
-    cursor.execute('DELETE FROM stats')
-    conn.commit()
-    cursor.execute('INSERT INTO stats VALUES (5, 0, 0, 0, 350)')
-    conn.commit()
+    new_game()
 
 for x in range(5):
     alive = True if x <= player_health else False
@@ -217,6 +243,7 @@ while running:
         screen.fill((135, 206, 235))
         element: UIElement
         for element in menu_elements:
+            element.update()
             for event in events:
                 element.update(event)
             screen.blit(element.surface, element.rect)
@@ -225,6 +252,7 @@ while running:
         screen.fill((135, 206, 235))
         element: UIElement
         for element in pause_menu_elements:
+            element.update()
             for event in events:
                 element.update(event)
             screen.blit(element.surface, element.rect)
@@ -233,6 +261,7 @@ while running:
         screen.fill((255, 87, 112))
         element: UIElement
         for element in game_over_elements:
+            element.update()
             for event in events:
                 element.update(event)
             screen.blit(element.surface, element.rect)
